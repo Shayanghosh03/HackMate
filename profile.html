@@ -9,7 +9,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css" />
-  <script>window.API_BASE = 'http://localhost:4000';</script>
+  <script>
+    window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen">
   <div class="pointer-events-none fixed inset-0 overflow-hidden">
@@ -139,9 +141,9 @@
 
     function render(u){
       const status = document.getElementById('profileStatus'); if (status) { status.textContent = 'Profile loaded'; status.className = 'mb-3 text-xs text-emerald-300'; }
-      document.getElementById('uName')?.textContent = u.name || '—';
-      document.getElementById('uMeta')?.textContent = [u.organization||'', u.location||''].filter(Boolean).join(' • ') || '—';
-      document.getElementById('uBio')?.textContent = u.bio || '—';
+  var elName = document.getElementById('uName'); if (elName) elName.textContent = u.name || '—';
+  var elMeta = document.getElementById('uMeta'); if (elMeta) elMeta.textContent = [u.organization||'', u.location||''].filter(Boolean).join(' • ') || '—';
+  var elBio = document.getElementById('uBio'); if (elBio) elBio.textContent = u.bio || '—';
       const emailWrap = document.getElementById('uEmail');
       if (emailWrap) {
         if (u.email) { emailWrap.classList.remove('hidden'); const a=emailWrap.querySelector('a'); if (a){ a.href = `mailto:${u.email}`; a.textContent = u.email; } }
@@ -166,16 +168,8 @@
         try { render(cached); } catch {}
       }
       if (!token) {
-        // Show a friendly prompt on profile page instead of redirect
-        const status = document.getElementById('profileStatus'); if (status) { status.textContent = 'Not logged in'; status.className = 'mb-3 text-xs text-amber-300'; }
-        document.getElementById('uName')?.textContent = 'Guest';
-        document.getElementById('uMeta')?.textContent = 'You are not logged in';
-        document.getElementById('uBio')?.textContent = 'Log in to view and edit your profile.';
-        const linksWrap = document.getElementById('uLinks');
-        linksWrap.innerHTML = '';
-        const a = document.createElement('a'); a.href = 'login.html'; a.className = 'text-cyan-300 hover:underline'; a.textContent = 'Log in'; linksWrap.appendChild(a);
-        const eBtn = document.getElementById('editBtn'); if (eBtn) eBtn.disabled = true;
-        const dBtn = document.getElementById('deleteBtn'); if (dBtn) dBtn.disabled = true;
+        // Not authenticated → send to login and come back here after
+        window.location.href = 'login.html?next=profile.html';
         return;
       }
       try {
@@ -199,13 +193,9 @@
           try { render(cachedUser); } catch {}
           if (status) { status.textContent = 'Using cached profile • ' + (e && e.message ? e.message : 'Could not refresh'); status.className = 'mb-3 text-xs text-amber-300'; }
         } else {
-          if (status) { status.textContent = 'Failed to load profile' + (e && e.message ? `: ${e.message}` : ''); status.className = 'mb-3 text-xs text-rose-300'; }
-          document.getElementById('uName')?.textContent = 'Session expired';
-          document.getElementById('uMeta')?.textContent = '';
-          document.getElementById('uBio')?.textContent = 'Please log in again.';
-          const linksWrap = document.getElementById('uLinks');
-          linksWrap.innerHTML = '';
-          const a = document.createElement('a'); a.href = 'login.html'; a.className = 'text-cyan-300 hover:underline'; a.textContent = 'Log in'; linksWrap.appendChild(a);
+          // Likely not authenticated or token invalid → redirect to login, then back
+          try { if (status) { status.textContent = 'Redirecting to log in…'; status.className = 'mb-3 text-xs text-amber-300'; } } catch {}
+          window.location.href = 'login.html?next=profile.html';
         }
       }
     }
@@ -222,6 +212,8 @@
           el.className = 'mb-3 text-xs ' + (d.db==='connected' ? 'text-emerald-300' : 'text-amber-300');
         }).catch((e)=>{ const el=document.getElementById('apiStatus'); if (el){ el.textContent=`API unreachable`; el.className='mb-3 text-xs text-rose-300'; } });
       } catch {}
+  // If API status didn't change, hint after 4s
+  setTimeout(()=>{ const s=document.getElementById('apiStatus'); if (s && /Checking API/.test(s.textContent||'')) { s.textContent = 'API check timed out. Open this page via http://localhost:4000/profile.html and ensure the server is running.'; s.className = 'mb-3 text-xs text-amber-300'; } }, 4000);
       document.getElementById('logoutBtn').addEventListener('click', ()=>{ localStorage.removeItem('hm_token'); localStorage.removeItem('hm_user'); window.location.href='index.html#home'; });
       document.getElementById('editBtn').addEventListener('click', ()=>{ const p=document.getElementById('editPanel'); p.classList.remove('hidden'); p.classList.add('in-view'); });
       document.getElementById('cancelEdit').addEventListener('click', ()=>{ document.getElementById('editPanel').classList.add('hidden'); });
@@ -256,6 +248,14 @@
         if (e.key === 'hm_user') { try { const u = JSON.parse(e.newValue||'null'); if (u) render(u); } catch {} }
       });
       load();
+    });
+
+    // Surface unexpected JS errors visibly on the page
+    window.addEventListener('error', function(ev){
+      try { const s=document.getElementById('profileStatus'); if (s) { s.textContent = 'Script error: ' + (ev && ev.message ? ev.message : 'Unknown'); s.className = 'mb-3 text-xs text-rose-300'; } } catch {}
+    });
+    window.addEventListener('unhandledrejection', function(ev){
+      try { const s=document.getElementById('profileStatus'); if (s) { s.textContent = 'Unhandled error: ' + (ev && ev.reason && ev.reason.message ? ev.reason.message : 'Unknown'); s.className = 'mb-3 text-xs text-rose-300'; } } catch {}
     });
   </script>
 </body>
