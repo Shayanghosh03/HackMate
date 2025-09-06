@@ -374,19 +374,55 @@
             </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            <!-- Screenshot 1 -->
             <div class="card reveal">
-              <div class="card-body h-40 grid place-items-center text-slate-400">
-                <span>Screenshot Placeholder</span>
+              <div class="card-body">
+                <div id="shot1Wrap" class="h-40 grid place-items-center bg-slate-900/40 rounded-lg border border-white/10">
+                  <img id="aboutShot1" class="hidden max-h-40 w-full object-contain rounded-lg" alt="Screenshot 1" />
+                  <span id="shot1Placeholder" class="text-slate-400">Screenshot Placeholder</span>
+                </div>
+                <div class="mt-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <input id="shot1Input" type="file" accept="image/*" class="hidden" />
+                    <button id="shot1Btn" class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15">Upload image</button>
+                    <button id="shot1Clear" class="rounded-md border border-white/10 px-3 py-1.5 text-sm hover:bg-white/5">Remove</button>
+                  </div>
+                  <span id="shot1Status" class="text-xs text-slate-400"></span>
+                </div>
               </div>
             </div>
+            <!-- Screenshot 2 -->
             <div class="card reveal" style="--reveal-delay:80ms">
-              <div class="card-body h-40 grid place-items-center text-slate-400">
-                <span>Screenshot Placeholder</span>
+              <div class="card-body">
+                <div id="shot2Wrap" class="h-40 grid place-items-center bg-slate-900/40 rounded-lg border border-white/10">
+                  <img id="aboutShot2" class="hidden max-h-40 w-full object-contain rounded-lg" alt="Screenshot 2" />
+                  <span id="shot2Placeholder" class="text-slate-400">Screenshot Placeholder</span>
+                </div>
+                <div class="mt-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <input id="shot2Input" type="file" accept="image/*" class="hidden" />
+                    <button id="shot2Btn" class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15">Upload image</button>
+                    <button id="shot2Clear" class="rounded-md border border-white/10 px-3 py-1.5 text-sm hover:bg-white/5">Remove</button>
+                  </div>
+                  <span id="shot2Status" class="text-xs text-slate-400"></span>
+                </div>
               </div>
             </div>
+            <!-- Demo video -->
             <div class="card reveal" style="--reveal-delay:140ms">
-              <div class="card-body h-40 grid place-items-center text-slate-400">
-                <span>Demo Video Placeholder</span>
+              <div class="card-body">
+                <div id="demoWrap" class="h-40 grid place-items-center bg-slate-900/40 rounded-lg border border-white/10">
+                  <video id="aboutDemo" class="hidden h-40 w-full object-contain rounded-lg" controls></video>
+                  <span id="demoPlaceholder" class="text-slate-400">Demo Video Placeholder</span>
+                </div>
+                <div class="mt-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <input id="demoInput" type="file" accept="video/mp4,video/webm" class="hidden" />
+                    <button id="demoBtn" class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15">Upload video</button>
+                    <button id="demoClear" class="rounded-md border border-white/10 px-3 py-1.5 text-sm hover:bg-white/5">Remove</button>
+                  </div>
+                  <span id="demoStatus" class="text-xs text-slate-400"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -486,7 +522,10 @@
     <div class="text-center text-xs text-slate-500 pb-8">© <span id="year"></span> HackMate. All rights reserved.</div>
   </footer>
 
-  <script>window.API_BASE = 'http://localhost:4000';</script>
+  <script>
+    // Prefer current origin when served by the API; fallback to localhost:4000
+    window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+  </script>
   <script src="app.js"></script>
   <script>
     
@@ -583,6 +622,119 @@
         syncLabel();
       });
       syncLabel();
+    })();
+
+    // --- About section uploads ---
+    (function(){
+      const API_BASE = window.API_BASE || 'http://localhost:4000';
+      function get(key){ try { return localStorage.getItem(key) || ''; } catch { return ''; } }
+      function set(key, val){ try { localStorage.setItem(key, val); } catch {} }
+      function clear(key){ try { localStorage.removeItem(key); } catch {} }
+
+      // Render from stored URLs (explicit placeholder IDs for reliability)
+      function renderShot(imgId, placeholderId, key){
+        const url = get(key);
+        const img = document.getElementById(imgId);
+        const ph = document.getElementById(placeholderId);
+        if (!img) return;
+        if (url){ img.src = url; img.classList.remove('hidden'); if (ph) ph.classList.add('hidden'); }
+        else { img.removeAttribute('src'); img.classList.add('hidden'); if (ph) ph.classList.remove('hidden'); }
+      }
+      function renderVideo(videoId, placeholderId, key){
+        const url = get(key);
+        const vid = document.getElementById(videoId);
+        const ph = document.getElementById(placeholderId);
+        if (!vid) return;
+        if (url){ vid.src = url; vid.classList.remove('hidden'); if (ph) ph.classList.add('hidden'); vid.load(); }
+        else { vid.removeAttribute('src'); vid.load(); vid.classList.add('hidden'); if (ph) ph.classList.remove('hidden'); }
+      }
+
+      function upload(file, type, statusEl, cb){
+        if (!file) return;
+        if (statusEl) statusEl.textContent = 'Uploading…';
+        const url = `${API_BASE}/api/upload?filename=${encodeURIComponent(file.name)}&type=${encodeURIComponent(type)}`;
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file })
+          .then(async (r) => {
+            if (!r.ok) {
+              const text = await r.text().catch(()=> '');
+              throw new Error(text || `HTTP ${r.status}`);
+            }
+            return r.json();
+          })
+          .then(d => {
+            if (!d || !d.url) throw new Error('No url returned');
+            if (statusEl) statusEl.textContent = 'Uploaded';
+            cb && cb(d.url);
+          })
+          .catch(err => {
+            console.error('Upload error:', err);
+            if (statusEl) statusEl.textContent = 'Upload failed (using local preview)';
+            // Fallback: render locally via data URL so user still sees the media
+            try {
+              const reader = new FileReader();
+              reader.onload = function(){
+                const dataUrl = String(reader.result || '');
+                if (type === 'image') {
+                  if (cb) cb(dataUrl);
+                } else if (type === 'video') {
+                  if (cb) cb(dataUrl);
+                }
+              };
+              reader.onerror = function(){ alert('Upload failed and preview failed. Please try again.'); };
+              reader.readAsDataURL(file);
+            } catch(e){ alert('Upload failed: ' + (err && err.message ? err.message : 'Unknown error')); }
+          });
+      }
+
+      // Hook up Shot 1
+      const shot1Btn = document.getElementById('shot1Btn');
+      const shot1Input = document.getElementById('shot1Input');
+      const shot1Status = document.getElementById('shot1Status');
+      const shot1Clear = document.getElementById('shot1Clear');
+      if (shot1Btn && shot1Input){
+        shot1Btn.addEventListener('click', ()=> shot1Input.click());
+        shot1Input.addEventListener('change', ()=>{
+          const f = shot1Input.files && shot1Input.files[0];
+          if (!f) return;
+          upload(f, 'image', shot1Status, (url)=>{ set('hm_about_shot1', url); renderShot('aboutShot1', 'shot1Placeholder', 'hm_about_shot1'); });
+        });
+      }
+    if (shot1Clear){ shot1Clear.addEventListener('click', ()=>{ clear('hm_about_shot1'); renderShot('aboutShot1', 'shot1Placeholder', 'hm_about_shot1'); shot1Status && (shot1Status.textContent=''); }); }
+
+      // Shot 2
+      const shot2Btn = document.getElementById('shot2Btn');
+      const shot2Input = document.getElementById('shot2Input');
+      const shot2Status = document.getElementById('shot2Status');
+      const shot2Clear = document.getElementById('shot2Clear');
+      if (shot2Btn && shot2Input){
+        shot2Btn.addEventListener('click', ()=> shot2Input.click());
+        shot2Input.addEventListener('change', ()=>{
+          const f = shot2Input.files && shot2Input.files[0];
+          if (!f) return;
+          upload(f, 'image', shot2Status, (url)=>{ set('hm_about_shot2', url); renderShot('aboutShot2', 'shot2Placeholder', 'hm_about_shot2'); });
+        });
+      }
+    if (shot2Clear){ shot2Clear.addEventListener('click', ()=>{ clear('hm_about_shot2'); renderShot('aboutShot2', 'shot2Placeholder', 'hm_about_shot2'); shot2Status && (shot2Status.textContent=''); }); }
+
+      // Demo video
+      const demoBtn = document.getElementById('demoBtn');
+      const demoInput = document.getElementById('demoInput');
+      const demoStatus = document.getElementById('demoStatus');
+      const demoClear = document.getElementById('demoClear');
+      if (demoBtn && demoInput){
+        demoBtn.addEventListener('click', ()=> demoInput.click());
+        demoInput.addEventListener('change', ()=>{
+          const f = demoInput.files && demoInput.files[0];
+          if (!f) return;
+          upload(f, 'video', demoStatus, (url)=>{ set('hm_about_demo', url); renderVideo('aboutDemo', 'demoPlaceholder', 'hm_about_demo'); });
+        });
+      }
+    if (demoClear){ demoClear.addEventListener('click', ()=>{ clear('hm_about_demo'); renderVideo('aboutDemo', 'demoPlaceholder', 'hm_about_demo'); demoStatus && (demoStatus.textContent=''); }); }
+
+      // Initial render
+    renderShot('aboutShot1', 'shot1Placeholder', 'hm_about_shot1');
+    renderShot('aboutShot2', 'shot2Placeholder', 'hm_about_shot2');
+    renderVideo('aboutDemo', 'demoPlaceholder', 'hm_about_demo');
     })();
   </script>
 </body>
