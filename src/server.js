@@ -7,6 +7,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -14,6 +16,10 @@ const teamRoutes = require('./routes/teams');
 const ideaRoutes = require('./routes/ideas');
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: { origin: true, credentials: true },
+});
 
 // Middleware
 app.use(cors());
@@ -90,8 +96,35 @@ app.get('/api/helth', healthHandler);
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hackmate';
 
+// Socket.IO realtime chat (rooms)
+io.on('connection', (socket) => {
+  // Join a room for a given candidate/team/profile chat
+  socket.on('join', ({ roomId, userName }) => {
+    if (!roomId) return;
+    socket.join(roomId);
+    socket.data.roomId = roomId;
+    socket.data.userName = userName || 'Guest';
+    socket.to(roomId).emit('system', { text: `${socket.data.userName} joined`, roomId, ts: Date.now() });
+  });
+
+  // Relay chat messages to room peers
+  socket.on('chat:message', (msg) => {
+    try {
+      const { roomId, text, userName, ts } = msg || {};
+      const rid = roomId || socket.data.roomId;
+      if (!rid || !text) return;
+      socket.to(rid).emit('chat:message', { roomId: rid, text, userName: userName || socket.data.userName || 'Guest', ts: ts || Date.now() });
+    } catch {}
+  });
+
+  socket.on('disconnect', () => {
+    const { roomId, userName } = socket.data || {};
+    if (roomId) socket.to(roomId).emit('system', { text: `${userName || 'Someone'} left`, roomId, ts: Date.now() });
+  });
+});
+
 // Start the HTTP server first so health checks work even if DB is down
-app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+httpServer.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
 
 // Connect to MongoDB (non-fatal if it fails; health route will reflect status)
 mongoose

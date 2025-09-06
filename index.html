@@ -526,6 +526,7 @@
     // Prefer current origin when served by the API; fallback to localhost:4000
     window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
   </script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="app.js"></script>
   <script>
     

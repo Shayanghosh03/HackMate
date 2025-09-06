@@ -81,8 +81,8 @@ const sampleProfiles = [
     email: "aisha@example.com",
     organization: "IIT Delhi",
     location: "Delhi, IN",
-  linkedin: "",
-  github: "",
+    linkedin: "",
+    github: "",
     skills: ["React", "Node.js", "Tailwind CSS", "PostgreSQL"],
     readme: "Front-end focused full-stack dev. Loves building polished UX."
   },
@@ -92,8 +92,8 @@ const sampleProfiles = [
     email: "rahul@example.com",
     organization: "BITS Pilani",
     location: "Hyderabad, IN",
-  linkedin: "",
-  github: "",
+    linkedin: "",
+    github: "",
     skills: ["Python", "FastAPI", "MongoDB", "Docker"],
     readme: "Backend engineer with API and data modeling expertise."
   },
@@ -103,8 +103,8 @@ const sampleProfiles = [
     email: "sara@example.com",
     organization: "NUS",
     location: "Singapore",
-  linkedin: "",
-  github: "",
+    linkedin: "",
+    github: "",
     skills: ["Machine Learning", "NLP", "Python", "AWS"],
     readme: "ML practitioner focusing on NLP and model serving."
   }
@@ -139,6 +139,13 @@ const sampleTeams = [
 
 // ---- API integration ----
 const API_BASE = (window.API_BASE || 'http://localhost:4000');
+// Socket.IO client (lazy)
+let socket = null;
+function getSocket() {
+  if (socket) return socket;
+  try { socket = io(API_BASE, { transports: ['websocket', 'polling'] }); } catch {}
+  return socket;
+}
 function getToken() { try { return localStorage.getItem('hm_token') || ''; } catch { return ''; } }
 function setAuth(token, user) { try { if (token) localStorage.setItem('hm_token', token); if (user) localStorage.setItem('hm_user', JSON.stringify(user)); } catch {} }
 async function apiFetch(path, opts = {}) {
@@ -318,7 +325,10 @@ function bindTeamFinder() {
             <button data-idx="${i}" class="rounded-md bg-rose-500/20 px-3 py-1.5 text-sm text-rose-200 hover:bg-rose-500/30" data-action="delete">Remove</button>
           </div>
         </div>`;
-      card.querySelector('[data-action="chat"]').addEventListener('click', () => openChat({ type: 'profile', targetId: `tf-${i}`, name: e.name }));
+      card.querySelector('[data-action="chat"]').addEventListener('click', () => {
+        const rid = `tf-${String(e.name||'anon').toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
+        openChat({ type: 'candidate', targetId: rid, name: e.name });
+      });
       card.querySelector('[data-action="delete"]').addEventListener('click', () => {
         const cur = getEntries();
         cur.splice(i, 1);
@@ -589,6 +599,21 @@ function openChat(ctx) {
   void $("#chatModal").offsetHeight;
   $("#chatModal").classList.add("show");
   $("#messageInput").focus();
+
+  // Join realtime room for this conversation
+  try {
+    const sock = getSocket();
+    if (sock) {
+      const roomId = `${ctx.type}:${ctx.targetId}`;
+      const me = JSON.parse(localStorage.getItem('hm_user')||'null');
+      sock.emit('join', { roomId, userName: (me && me.name) || 'Guest' });
+      // Ensure clean listeners per session
+      sock.off('chat:message');
+      sock.off('system');
+      sock.on('system', (m) => { if (m && m.text) addSystemMessage(m.text); });
+      sock.on('chat:message', (m) => { if (m && m.text) addChatMessage({ text: m.text, fromSelf: false, system: false }); });
+    }
+  } catch {}
 }
 
 function closeChat() {
@@ -604,7 +629,19 @@ function sendMessage() {
   const fileInput = $("#attachmentInput");
   if (!text && !fileInput.files.length) return;
 
-  if (text) addChatMessage({ text, fromSelf: true });
+  if (text) {
+    addChatMessage({ text, fromSelf: true });
+    // Broadcast to room peers
+    try {
+      const sock = getSocket();
+      const ctx = state.chatContext;
+      if (sock && ctx) {
+        const roomId = `${ctx.type}:${ctx.targetId}`;
+        const me = JSON.parse(localStorage.getItem('hm_user')||'null');
+        sock.emit('chat:message', { roomId, text, userName: (me && me.name) || 'Me', ts: Date.now() });
+      }
+    } catch {}
+  }
   if (fileInput.files.length) {
     const file = fileInput.files[0];
     addChatMessage({ attachment: file.name, fromSelf: true });
