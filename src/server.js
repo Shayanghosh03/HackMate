@@ -5,6 +5,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -23,6 +24,19 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/ideas', ideaRoutes);
+
+// Serve static frontend (so opening index.html/profile.html uses the same origin as API)
+const staticRoot = path.resolve(__dirname, '..');
+app.use(express.static(staticRoot));
+
+// Explicit HTML routes (helps on some environments/tools where /index.html doesn't resolve via static)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(staticRoot, 'index.html'));
+});
+app.get(['/index.html', '/login.html', '/createprofile.html', '/profile.html'], (req, res) => {
+  const file = req.path.replace(/^\//, '');
+  res.sendFile(path.join(staticRoot, file));
+});
 
 // Health with DB status
 const healthHandler = (req, res) => {

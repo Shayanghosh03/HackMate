@@ -74,7 +74,9 @@
           if (!res.ok) { const data = await res.json().catch(()=>({})); throw new Error(data.message || res.statusText); }
           const data = await res.json();
           try { localStorage.setItem('hm_token', data.token); localStorage.setItem('hm_user', JSON.stringify(data.user)); } catch {}
-          window.location.href = 'profile.html';
+          const params = new URLSearchParams(window.location.search);
+          const next = params.get('next') || 'profile.html';
+          window.location.href = next;
         } catch (e) {
           btn.disabled = false; err.textContent = e.message || 'Login failed'; err.classList.remove('hidden');
         }
