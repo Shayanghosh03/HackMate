@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile • HackMate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <script>window.API_BASE = 'http://localhost:4000';</script>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen">
+  <div class="pointer-events-none fixed inset-0 overflow-hidden">
+    <div class="bg-aurora"></div>
+    <div class="absolute -top-48 -left-40 h-96 w-96 rounded-full bg-fuchsia-500/20 blur-3xl"></div>
+    <div class="absolute -bottom-48 -right-40 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl"></div>
+    <div class="bg-grid"></div>
+  </div>
+
+  <header class="relative z-10 border-b border-white/10 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40">
+    <div class="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
+      <a href="index.html#home" class="flex items-center gap-3">
+        <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" class="rounded-xl shadow-[0_0_40px_-10px_rgba(168,85,247,.7)]" role="img" aria-label="HackMate logo">
+          <defs>
+            <linearGradient id="hm_g2p" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#a855f7"/>
+              <stop offset="60%" stop-color="#6366f1"/>
+              <stop offset="100%" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#hm_g2p)"/>
+          <g fill="none" stroke="#0b1020" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M26 22 L18 32 L26 42"/>
+            <path d="M38 22 L46 32 L38 42"/>
+          </g>
+          <circle cx="32" cy="32" r="3.2" fill="#0b1020"/>
+        </svg>
+        <h1 class="text-xl font-extrabold tracking-tight">HackMate</h1>
+      </a>
+      <div class="flex items-center gap-3">
+        <a href="index.html#search" class="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10">Explore</a>
+        <button id="logoutBtn" class="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 mx-auto max-w-7xl px-6 py-10">
+  <section class="reveal in-view">
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+  <p id="profileStatus" class="mb-3 text-xs text-slate-400">Loading profile…</p>
+  <p id="apiStatus" class="mb-3 text-xs text-slate-400">Checking API…</p>
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-start gap-4">
+            <div class="h-14 w-14 rounded-xl bg-gradient-to-br from-fuchsia-500 to-cyan-500 grid place-items-center text-slate-900">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+                <path d="M12 12c2.761 0 5-2.462 5-5.5S14.761 1 12 1 7 3.462 7 6.5 9.239 12 12 12zm0 2c-4.418 0-8 2.91-8 6.5 0 .828.672 1.5 1.5 1.5h13c.828 0 1.5-.672 1.5-1.5 0-3.59-3.582-6.5-8-6.5z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 id="uName" class="text-2xl font-bold">—</h2>
+              <p id="uMeta" class="text-sm text-slate-400">—</p>
+              <p id="uEmail" class="text-xs mt-1"><a href="#" class="text-cyan-300 hover:underline">—</a></p>
+              <div id="uLinks" class="mt-2 flex items-center gap-3 text-xs"></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="editBtn" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">Edit profile</button>
+            <button id="deleteBtn" class="rounded-md bg-rose-500/20 px-3 py-2 text-sm text-rose-200 hover:bg-rose-500/30">Delete account</button>
+          </div>
+        </div>
+        <p id="uBio" class="mt-5 text-slate-300">—</p>
+        <div class="mt-4">
+          <h4 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">Skills</h4>
+          <div id="uSkills" class="mt-2 flex flex-wrap gap-2 text-xs"></div>
+        </div>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-300">
+          <div><span class="text-slate-400">Organization:</span> <span id="uOrg">—</span></div>
+          <div><span class="text-slate-400">Location:</span> <span id="uLoc">—</span></div>
+        </div>
+      </div>
+    </section>
+
+  <section id="editPanel" class="hidden mt-8 reveal">
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+        <h3 class="text-lg font-semibold">Edit Profile</h3>
+        <form id="editForm" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" onsubmit="return false;">
+          <input id="eName" type="text" placeholder="Full name" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <input id="eEmail" type="email" placeholder="Email" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <input id="eOrg" type="text" placeholder="College / Organization" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <input id="eLoc" type="text" placeholder="Location" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <input id="eLinkedIn" type="url" placeholder="LinkedIn profile URL" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <input id="eGitHub" type="url" placeholder="GitHub profile URL" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <div class="md:col-span-2">
+            <label class="block text-sm mb-1 text-slate-300">Skills</label>
+            <input id="eSkills" type="text" placeholder="e.g. React, Node.js, PostgreSQL" class="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+            <p class="mt-1 text-xs text-slate-400">Comma-separated list.</p>
+          </div>
+          <textarea id="eBio" rows="5" placeholder="Short bio / README" class="md:col-span-2 rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm"></textarea>
+          <div class="md:col-span-2 flex items-center justify-end gap-3">
+            <button id="cancelEdit" type="button" class="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10">Cancel</button>
+            <button id="saveEdit" type="submit" class="rounded-lg bg-gradient-to-br from-fuchsia-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white">Save changes</button>
+          </div>
+          <p id="editError" class="md:col-span-2 hidden text-sm text-rose-300"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="relative z-10 mt-16 border-t border-white/10">
+    <div class="mx-auto max-w-7xl px-6 py-10 text-center text-xs text-slate-500">© <span id="year"></span> HackMate</div>
+  </footer>
+
+  <script>
+    const API_BASE = window.API_BASE || 'http://localhost:4000';
+    function getToken(){ try { return localStorage.getItem('hm_token') || ''; } catch { return ''; } }
+    function getUserCache(){ try { return JSON.parse(localStorage.getItem('hm_user')||'null'); } catch { return null; } }
+    function setUserCache(u){ try { localStorage.setItem('hm_user', JSON.stringify(u)); } catch {} }
+
+    async function fetchWithTimeout(url, opts={}, timeoutMs=6000){
+      const ctrl = new AbortController();
+      const id = setTimeout(()=>ctrl.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...opts, signal: ctrl.signal });
+      } finally { clearTimeout(id); }
+    }
+
+    async function api(path, opts={}){
+      const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
+      const t = getToken(); if (t) headers['Authorization'] = `Bearer ${t}`;
+      const res = await fetchWithTimeout(API_BASE + path, { ...opts, headers }, 7000);
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).message || res.statusText);
+      return res.json();
+    }
+
+    function render(u){
+      const status = document.getElementById('profileStatus'); if (status) { status.textContent = 'Profile loaded'; status.className = 'mb-3 text-xs text-emerald-300'; }
+      document.getElementById('uName')?.textContent = u.name || '—';
+      document.getElementById('uMeta')?.textContent = [u.organization||'', u.location||''].filter(Boolean).join(' • ') || '—';
+      document.getElementById('uBio')?.textContent = u.bio || '—';
+      const emailWrap = document.getElementById('uEmail');
+      if (emailWrap) {
+        if (u.email) { emailWrap.classList.remove('hidden'); const a=emailWrap.querySelector('a'); if (a){ a.href = `mailto:${u.email}`; a.textContent = u.email; } }
+        else { emailWrap.classList.add('hidden'); }
+      }
+  const skillsWrap = document.getElementById('uSkills');
+      skillsWrap.innerHTML = '';
+      (u.skills||[]).forEach(s=>{ const span=document.createElement('span'); span.className='badge'; span.textContent=s; skillsWrap.appendChild(span); });
+      const linksWrap = document.getElementById('uLinks');
+      linksWrap.innerHTML = '';
+      if (u.github) { const a=document.createElement('a'); a.href=u.github; a.target='_blank'; a.className='text-cyan-300 hover:underline'; a.textContent='GitHub'; linksWrap.appendChild(a); }
+      if (u.linkedin) { const a=document.createElement('a'); a.href=u.linkedin; a.target='_blank'; a.className='text-cyan-300 hover:underline'; a.textContent='LinkedIn'; linksWrap.appendChild(a); }
+  const orgEl = document.getElementById('uOrg'); if (orgEl) orgEl.textContent = u.organization || '—';
+  const locEl = document.getElementById('uLoc'); if (locEl) locEl.textContent = u.location || '—';
+    }
+
+    async function load(){
+      const token = getToken();
+      // Show cached user immediately if present for better UX
+      const cached = getUserCache();
+      if (cached && cached.email) {
+        try { render(cached); } catch {}
+      }
+      if (!token) {
+        // Show a friendly prompt on profile page instead of redirect
+        const status = document.getElementById('profileStatus'); if (status) { status.textContent = 'Not logged in'; status.className = 'mb-3 text-xs text-amber-300'; }
+        document.getElementById('uName')?.textContent = 'Guest';
+        document.getElementById('uMeta')?.textContent = 'You are not logged in';
+        document.getElementById('uBio')?.textContent = 'Log in to view and edit your profile.';
+        const linksWrap = document.getElementById('uLinks');
+        linksWrap.innerHTML = '';
+        const a = document.createElement('a'); a.href = 'login.html'; a.className = 'text-cyan-300 hover:underline'; a.textContent = 'Log in'; linksWrap.appendChild(a);
+        const eBtn = document.getElementById('editBtn'); if (eBtn) eBtn.disabled = true;
+        const dBtn = document.getElementById('deleteBtn'); if (dBtn) dBtn.disabled = true;
+        return;
+      }
+      try {
+        const me = await api('/api/users/me');
+        render(me);
+        setUserCache(me);
+        // Prefill edit form
+        document.getElementById('eName').value = me.name || '';
+        document.getElementById('eEmail').value = me.email || '';
+        document.getElementById('eOrg').value = me.organization || '';
+        document.getElementById('eLoc').value = me.location || '';
+        document.getElementById('eLinkedIn').value = me.linkedin || '';
+        document.getElementById('eGitHub').value = me.github || '';
+        document.getElementById('eSkills').value = (me.skills||[]).join(', ');
+        document.getElementById('eBio').value = me.bio || '';
+      } catch(e) {
+        // API error: if we have cached user, keep showing it with a warning; else prompt to log in
+        const cachedUser = getUserCache();
+        const status = document.getElementById('profileStatus');
+        if (cachedUser && cachedUser.email) {
+          try { render(cachedUser); } catch {}
+          if (status) { status.textContent = 'Using cached profile • ' + (e && e.message ? e.message : 'Could not refresh'); status.className = 'mb-3 text-xs text-amber-300'; }
+        } else {
+          if (status) { status.textContent = 'Failed to load profile' + (e && e.message ? `: ${e.message}` : ''); status.className = 'mb-3 text-xs text-rose-300'; }
+          document.getElementById('uName')?.textContent = 'Session expired';
+          document.getElementById('uMeta')?.textContent = '';
+          document.getElementById('uBio')?.textContent = 'Please log in again.';
+          const linksWrap = document.getElementById('uLinks');
+          linksWrap.innerHTML = '';
+          const a = document.createElement('a'); a.href = 'login.html'; a.className = 'text-cyan-300 hover:underline'; a.textContent = 'Log in'; linksWrap.appendChild(a);
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const y=document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
+      // Ensure reveal elements are shown on this page (no global IO here)
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('in-view'));
+      // Ping API health
+      try {
+        fetchWithTimeout(`${API_BASE}/api/health`, {}, 3000).then(r=>r.json()).then(d=>{
+          const el = document.getElementById('apiStatus'); if (!el) return;
+          el.textContent = `API: ok • DB: ${d.db || 'unknown'}`;
+          el.className = 'mb-3 text-xs ' + (d.db==='connected' ? 'text-emerald-300' : 'text-amber-300');
+        }).catch((e)=>{ const el=document.getElementById('apiStatus'); if (el){ el.textContent=`API unreachable`; el.className='mb-3 text-xs text-rose-300'; } });
+      } catch {}
+      document.getElementById('logoutBtn').addEventListener('click', ()=>{ localStorage.removeItem('hm_token'); localStorage.removeItem('hm_user'); window.location.href='index.html#home'; });
+      document.getElementById('editBtn').addEventListener('click', ()=>{ const p=document.getElementById('editPanel'); p.classList.remove('hidden'); p.classList.add('in-view'); });
+      document.getElementById('cancelEdit').addEventListener('click', ()=>{ document.getElementById('editPanel').classList.add('hidden'); });
+      document.getElementById('deleteBtn').addEventListener('click', async ()=>{
+        if (!confirm('Delete your account? This cannot be undone.')) return;
+        try { await api('/api/users/me', { method: 'DELETE' }); localStorage.removeItem('hm_token'); localStorage.removeItem('hm_user'); window.location.href='index.html#home'; }
+        catch(e){ alert(e.message || 'Failed to delete account'); }
+      });
+      document.getElementById('editForm').addEventListener('submit', async (ev)=>{
+        ev.preventDefault();
+        const err = document.getElementById('editError'); err.classList.add('hidden');
+        const body = {
+          name: document.getElementById('eName').value.trim(),
+          email: document.getElementById('eEmail').value.trim(),
+          organization: document.getElementById('eOrg').value.trim(),
+          location: document.getElementById('eLoc').value.trim(),
+          linkedin: document.getElementById('eLinkedIn').value.trim(),
+          github: document.getElementById('eGitHub').value.trim(),
+          bio: document.getElementById('eBio').value.trim(),
+          skills: document.getElementById('eSkills').value.split(',').map(s=>s.trim()).filter(Boolean)
+        };
+        try {
+          const updated = await api('/api/users/me', { method: 'PUT', body: JSON.stringify(body) });
+          render(updated); setUserCache(updated);
+          // notify other tabs
+          try { localStorage.setItem('hm_user', JSON.stringify(updated)); } catch {}
+          document.getElementById('editPanel').classList.add('hidden');
+        } catch(e){ err.textContent = e.message || 'Update failed'; err.classList.remove('hidden'); }
+      });
+      // Keep UI up-to-date if user changes in another tab
+      window.addEventListener('storage', (e)=>{
+        if (e.key === 'hm_user') { try { const u = JSON.parse(e.newValue||'null'); if (u) render(u); } catch {} }
+      });
+      load();
+    });
+  </script>
+</body>
+</html>

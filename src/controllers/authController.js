@@ -10,13 +10,13 @@ function sign(user) {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, skills = [], bio = '' } = req.body;
+  const { name, email, password, skills = [], bio = '', organization = '', location = '', linkedin = '', github = '' } = req.body;
     if (!name || !email || !password) return res.status(400).json({ message: 'Missing fields' });
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ message: 'Email already registered' });
-    const user = await User.create({ name, email, password, skills, bio });
+  const user = await User.create({ name, email, password, skills, bio, organization, location, linkedin, github });
     const token = sign(user);
-    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, skills: user.skills, bio: user.bio } });
+  res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, skills: user.skills, bio: user.bio, organization: user.organization, location: user.location, linkedin: user.linkedin, github: user.github } });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -30,7 +30,7 @@ exports.login = async (req, res) => {
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
     const token = sign(user);
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, skills: user.skills, bio: user.bio } });
+  res.json({ token, user: { id: user._id, name: user.name, email: user.email, skills: user.skills, bio: user.bio, organization: user.organization, location: user.location, linkedin: user.linkedin, github: user.github } });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

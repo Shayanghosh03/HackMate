@@ -7,7 +7,11 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, index: true },
     password: { type: String, required: true },
     skills: { type: [String], default: [] },
-    bio: { type: String, default: '' }
+  bio: { type: String, default: '' },
+  organization: { type: String, default: '' },
+  location: { type: String, default: '' },
+  linkedin: { type: String, default: '' },
+  github: { type: String, default: '' }
   },
   { timestamps: true }
 );

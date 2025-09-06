@@ -34,7 +34,8 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Ro
 }
 .skill-item:hover { background: rgba(255,255,255,0.08); }
 .skill-left { display:flex; align-items:center; gap:0.5rem; }
-.skill-icon { width: 1.35rem; height: 1.35rem; display:grid; place-items:center; border-radius:0.375rem; background: rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.1); font-size: 0.85rem; }
+.skill-icon { width: 1.35rem; height: 1.35rem; display:grid; place-items:center; border-radius:0.375rem; background: rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.1); }
+.skill-icon img { width: 0.95rem; height: 0.95rem; object-fit: contain; filter: drop-shadow(0 0 0 transparent); }
 .skill-check {
   width: 1.75rem; height: 1.75rem; border-radius: 9999px; display:grid; place-items:center; border:1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(226,232,240,1); font-size: 0.9rem;
 }
@@ -103,6 +104,22 @@ button:active, .tab-btn:active { transform: translateY(0) scale(0.98); }
 .pointer-events-none.fixed.inset-0 > div:last-child { animation: blobFloat2 24s ease-in-out infinite alternate; }
 @keyframes blobFloat1 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(20px, -10px) scale(1.05); } 100% { transform: translate(0, 10px) scale(1); } }
 @keyframes blobFloat2 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-20px, 10px) scale(1.07); } 100% { transform: translate(0, -8px) scale(1); } }
+
+/* Aurora gradient mesh */
+.bg-aurora { position: absolute; inset: -15%; filter: blur(60px) saturate(120%); opacity: 0.35; background:
+  radial-gradient(40% 40% at 20% 20%, rgba(168,85,247,0.35), transparent 60%),
+  radial-gradient(40% 40% at 80% 30%, rgba(34,211,238,0.32), transparent 60%),
+  radial-gradient(45% 45% at 50% 80%, rgba(99,102,241,0.28), transparent 60%);
+  animation: auroraDrift 30s ease-in-out infinite alternate; pointer-events: none;
+}
+@keyframes auroraDrift { from { transform: translateY(-1%) scale(1); } to { transform: translateY(2%) scale(1.02); } }
+
+/* Subtle animated grid */
+.bg-grid { position:absolute; inset:0; background-image: linear-gradient(rgba(148,163,184,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.06) 1px, transparent 1px); background-size: 40px 40px; mask-image: radial-gradient(70% 50% at 50% 40%, #000 60%, transparent 100%); animation: gridPan 48s linear infinite; }
+@keyframes gridPan { from { background-position: 0 0, 0 0; } to { background-position: 80px 40px, 40px 80px; } }
+
+/* Perf mode: disable heavy bg layers */
+:root.perf-low .bg-aurora, :root.perf-low .bg-grid { display: none !important; }
 
 /* ---------- Visual enhancements ---------- */
 /* Hero aurora behind title */

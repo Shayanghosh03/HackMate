@@ -9,52 +9,69 @@ const sampleSkills = [
   "Figma", "UI/UX", "Product Design", "Project Management"
 ];
 
-const skillIcons = {
-  "JavaScript": "🟨",
-  "TypeScript": "🟦",
-  "React": "⚛️",
-  "Next.js": "⏭️",
-  "Vue": "🟢",
-  "Svelte": "🟠",
-  "Node.js": "🟩",
-  "Express": "🧭",
-  "Python": "🐍",
-  "Django": "🌿",
-  "Flask": "🍶",
-  "FastAPI": "⚡",
-  "Go": "🐹",
-  "Rust": "🦀",
-  "Java": "☕",
-  "Spring": "🌱",
-  "Kotlin": "🟪",
-  "Swift": "🟧",
-  "MongoDB": "🍃",
-  "PostgreSQL": "🐘",
-  "MySQL": "💠",
-  "SQLite": "🧩",
-  "Redis": "🟥",
-  "Tailwind CSS": "🌬️",
-  "CSS": "🎨",
-  "HTML": "🧱",
-  "GraphQL": "🔺",
-  "REST API": "🔌",
-  "AWS": "☁️",
-  "GCP": "☁️",
-  "Azure": "☁️",
-  "Docker": "🐳",
-  "Kubernetes": "☸️",
-  "Machine Learning": "🧠",
-  "Deep Learning": "🧬",
-  "NLP": "🗣️",
-  "Data Science": "📊",
-  "Figma": "🎛️",
-  "UI/UX": "💡",
-  "Product Design": "📐",
-  "Project Management": "📋"
+// Brand logos for skills (Devicon & Simple Icons CDNs)
+const skillIconUrls = {
+  "JavaScript": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
+  "TypeScript": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
+  "React": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg",
+  "Next.js": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg",
+  "Vue": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vuejs/vuejs-original.svg",
+  "Svelte": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/svelte/svelte-original.svg",
+  "Node.js": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg",
+  "Express": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg",
+  "Python": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+  "Django": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain.svg",
+  "Flask": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flask/flask-original.svg",
+  "FastAPI": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg",
+  "Go": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg",
+  "Rust": "https://cdn.simpleicons.org/rust/DEA584",
+  "Java": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
+  "Spring": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/spring/spring-original.svg",
+  "Kotlin": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg",
+  "Swift": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg",
+  "MongoDB": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg",
+  "PostgreSQL": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg",
+  "MySQL": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg",
+  "SQLite": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sqlite/sqlite-original.svg",
+  "Redis": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg",
+  "Tailwind CSS": "https://cdn.simpleicons.org/tailwindcss/06B6D4",
+  "CSS": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
+  "HTML": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
+  "GraphQL": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/graphql/graphql-plain.svg",
+  "REST API": "https://cdn.simpleicons.org/postman",
+  "AWS": "https://www.vectorlogo.zone/logos/amazon_aws/amazon_aws-icon.svg",
+  "GCP": "https://cdn.simpleicons.org/googlecloud/4285F4",
+  "Azure": "https://www.vectorlogo.zone/logos/microsoft_azure/microsoft_azure-icon.svg",
+  "Docker": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg",
+  "Kubernetes": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg",
+  // Broader categories mapped to well-known tools
+  "Machine Learning": "https://cdn.simpleicons.org/scikitlearn",
+  "Deep Learning": "https://cdn.simpleicons.org/tensorflow",
+  "NLP": "https://cdn.simpleicons.org/spacy",
+  "Data Science": "https://cdn.simpleicons.org/pandas",
+  "Figma": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/figma/figma-original.svg",
+  "UI/UX": "https://www.vectorlogo.zone/logos/adobe_xd/adobe_xd-icon.svg",
+  "Product Design": "https://cdn.simpleicons.org/sketch",
+  "Project Management": "https://cdn.simpleicons.org/trello"
 };
 
-function getSkillIcon(skill) {
-  return skillIcons[skill] || skill[0];
+function getSkillIconHTML(skill) {
+  const url = skillIconUrls[skill];
+  // Fallback chains for brands that sometimes block/redirect
+  const altChains = {
+    'AWS': [ 'https://cdn.simpleicons.org/amazonwebservices/FF9900' ],
+    'Azure': [ 'https://cdn.simpleicons.org/microsoftazure/0078D4' ],
+    'UI/UX': [ 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/xd/xd-plain.svg', 'https://cdn.simpleicons.org/adobexd/FF61F6' ]
+  };
+  if (url) {
+    const fallbacks = altChains[skill] ? altChains[skill].join('|') : '';
+    const onerr = fallbacks
+      ? `onerror="(function(img){var f=img.getAttribute('data-fallback');if(!f)return;var a=f.split('|');img.onerror=null;img.src=a.shift();img.setAttribute('data-fallback',a.join('|'));})(this)"`
+      : '';
+    return `<img src="${url}" alt="${skill} logo" loading="lazy" ${fallbacks?`data-fallback='${fallbacks}'`:''} ${onerr}>`;
+  }
+  // Fallback: small inline code-bracket glyph
+  return `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 4, 3 12, 8 20"></polyline><polyline points="16 4, 21 12, 16 20"></polyline></svg>`;
 }
 
 const sampleProfiles = [
@@ -64,6 +81,8 @@ const sampleProfiles = [
     email: "aisha@example.com",
     organization: "IIT Delhi",
     location: "Delhi, IN",
+  linkedin: "",
+  github: "",
     skills: ["React", "Node.js", "Tailwind CSS", "PostgreSQL"],
     readme: "Front-end focused full-stack dev. Loves building polished UX."
   },
@@ -73,6 +92,8 @@ const sampleProfiles = [
     email: "rahul@example.com",
     organization: "BITS Pilani",
     location: "Hyderabad, IN",
+  linkedin: "",
+  github: "",
     skills: ["Python", "FastAPI", "MongoDB", "Docker"],
     readme: "Backend engineer with API and data modeling expertise."
   },
@@ -82,6 +103,8 @@ const sampleProfiles = [
     email: "sara@example.com",
     organization: "NUS",
     location: "Singapore",
+  linkedin: "",
+  github: "",
     skills: ["Machine Learning", "NLP", "Python", "AWS"],
     readme: "ML practitioner focusing on NLP and model serving."
   }
@@ -115,7 +138,7 @@ const sampleTeams = [
 ];
 
 // ---- API integration ----
-const API_BASE = (window.API_BASE || 'http://localhost:5000');
+const API_BASE = (window.API_BASE || 'http://localhost:4000');
 function getToken() { try { return localStorage.getItem('hm_token') || ''; } catch { return ''; } }
 function setAuth(token, user) { try { if (token) localStorage.setItem('hm_token', token); if (user) localStorage.setItem('hm_user', JSON.stringify(user)); } catch {} }
 async function apiFetch(path, opts = {}) {
@@ -142,7 +165,9 @@ async function loadRemoteData() {
         name: u.name,
         email: u.email,
         organization: u.organization || '',
-        location: u.location || 'Remote',
+        location: typeof u.location === 'string' ? u.location : '',
+        linkedin: u.linkedin || '',
+        github: u.github || '',
         skills: u.skills || [],
         readme: u.bio || ''
       }));
@@ -395,9 +420,9 @@ function renderSkills() {
       const item = document.createElement("div");
       item.className = "skill-item";
       const checked = state.selectedSkills.has(skill);
-      item.innerHTML = `
+    item.innerHTML = `
         <div class="skill-left">
-          <div class="skill-icon" aria-hidden="true">${getSkillIcon(skill)}</div>
+      <div class="skill-icon" aria-hidden="true">${getSkillIconHTML(skill)}</div>
           <span>${skill}</span>
         </div>
         <button class="skill-check ${checked ? 'selected' : ''}" aria-label="${checked ? 'Deselect' : 'Select'} ${skill}">✓</button>
@@ -451,7 +476,7 @@ function applyFilters() {
 
   if (state.tab === "teammate") {
     const filtered = (remoteProfiles && remoteProfiles.length ? remoteProfiles : sampleProfiles).filter((p) =>
-      (!state.locationFilter || p.location.toLowerCase().includes(state.locationFilter)) &&
+      (!state.locationFilter || String(p.location || '').toLowerCase().includes(state.locationFilter)) &&
       (skills.length === 0 || hasSkills(p.skills))
     );
     filtered.forEach((p) => resultsGrid.appendChild(renderProfileCard(p)));
@@ -490,7 +515,7 @@ function renderProfileCard(p) {
           </div>
           <div>
             <h4 class="font-semibold">${p.name}</h4>
-            <p class="text-xs text-slate-400">${p.organization} • ${p.location}</p>
+            <p class="text-xs text-slate-400">${[p.organization, p.location].filter(Boolean).join(' • ')}</p>
           </div>
         </div>
         <span class="badge">Profile</span>
@@ -500,7 +525,11 @@ function renderProfileCard(p) {
         ${p.skills.map((s) => `<span class="badge">${s}</span>`).join("")}
       </div>
       <div class="mt-4 flex items-center justify-between">
-        <a href="mailto:${p.email}" class="text-xs text-cyan-300 hover:underline">${p.email}</a>
+        <div class="flex items-center gap-3">
+          <a href="mailto:${p.email}" class="text-xs text-cyan-300 hover:underline">${p.email}</a>
+          ${p.github ? `<a href="${p.github}" target="_blank" rel="noopener" class="text-xs text-cyan-300 hover:underline">GitHub</a>` : ''}
+          ${p.linkedin ? `<a href="${p.linkedin}" target="_blank" rel="noopener" class="text-xs text-cyan-300 hover:underline">LinkedIn</a>` : ''}
+        </div>
         <button class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" data-action="chat" data-type="profile" data-id="${p.id}" data-name="${p.name}">Chat</button>
       </div>
     </div>

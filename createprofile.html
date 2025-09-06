@@ -20,16 +20,20 @@
   <header class="relative z-10 border-b border-white/10 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40">
     <div class="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
       <a href="index.html#home" class="flex items-center gap-3">
-        <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" class="rounded-xl shadow-[0_0_40px_-10px_rgba(168,85,247,.7)]">
+        <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" class="rounded-xl shadow-[0_0_40px_-10px_rgba(168,85,247,.7)]" role="img" aria-label="HackMate logo">
           <defs>
-            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id="hm_g2" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stop-color="#a855f7"/>
               <stop offset="60%" stop-color="#6366f1"/>
               <stop offset="100%" stop-color="#22d3ee"/>
             </linearGradient>
           </defs>
-          <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#g)"/>
-          <text x="50%" y="54%" text-anchor="middle" font-size="28" font-weight="800" fill="#0b1020" font-family="Inter, system-ui">HM</text>
+          <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#hm_g2)"/>
+          <g fill="none" stroke="#0b1020" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M26 22 L18 32 L26 42"/>
+            <path d="M38 22 L46 32 L38 42"/>
+          </g>
+          <circle cx="32" cy="32" r="3.2" fill="#0b1020"/>
         </svg>
         <h1 class="text-xl font-extrabold tracking-tight">HackMate</h1>
       </a>
@@ -57,6 +61,8 @@
           <input id="password" type="password" required placeholder="Password" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
           <input id="org" type="text" placeholder="College / Organization" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
           <input id="location" type="text" placeholder="Location" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <input id="linkedin" type="url" placeholder="LinkedIn profile URL" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <input id="github" type="url" placeholder="GitHub profile URL" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
           <div class="md:col-span-2">
             <label class="block text-sm mb-1 text-slate-300">Skills</label>
             <input id="skills" type="text" placeholder="e.g. React, Node.js, PostgreSQL" class="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
@@ -82,6 +88,7 @@
           </div>
           <p id="pBio" class="mt-3 text-sm text-slate-300">—</p>
           <div id="pSkills" class="mt-3 flex flex-wrap gap-2"></div>
+          <div id="pLinks" class="mt-4 flex items-center gap-3 text-xs"></div>
         </div>
       </div>
     </section>
@@ -128,8 +135,10 @@
       function updatePreview() {
         const name = document.getElementById('fullName').value.trim() || '—';
         const email = document.getElementById('email').value.trim();
-        const org = document.getElementById('org').value.trim();
-        const loc = document.getElementById('location').value.trim();
+  const org = document.getElementById('org').value.trim();
+  const loc = document.getElementById('location').value.trim();
+  const linkedin = document.getElementById('linkedin').value.trim();
+  const github = document.getElementById('github').value.trim();
         const bio = document.getElementById('bio').value.trim() || '—';
         const skillsRaw = document.getElementById('skills').value.trim();
 
@@ -146,6 +155,23 @@
             span.textContent = s;
             skillsWrap.appendChild(span);
           });
+        }
+
+        const linksWrap = document.getElementById('pLinks');
+        linksWrap.innerHTML = '';
+        if (github) {
+          const a = document.createElement('a');
+          a.className = 'text-cyan-300 hover:underline';
+          a.href = github; a.target = '_blank';
+          a.textContent = 'GitHub';
+          linksWrap.appendChild(a);
+        }
+        if (linkedin) {
+          const a = document.createElement('a');
+          a.className = 'text-cyan-300 hover:underline';
+          a.href = linkedin; a.target = '_blank';
+          a.textContent = 'LinkedIn';
+          linksWrap.appendChild(a);
         }
       }
 
@@ -175,14 +201,18 @@
         const name = document.getElementById('fullName').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-        const bio = document.getElementById('bio').value.trim();
+    const bio = document.getElementById('bio').value.trim();
         const skillsRaw = document.getElementById('skills').value.trim();
         const skills = skillsRaw ? skillsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    const organization = document.getElementById('org').value.trim();
+    const location = document.getElementById('location').value.trim();
+    const linkedin = document.getElementById('linkedin').value.trim();
+    const github = document.getElementById('github').value.trim();
         try {
           const res = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, skills, bio })
+      body: JSON.stringify({ name, email, password, skills, bio, organization, location, linkedin, github })
           });
           if (!res.ok) {
             const data = await res.json().catch(()=>({}));
