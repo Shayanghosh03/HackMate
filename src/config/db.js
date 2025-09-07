@@ -1,9 +1,17 @@
 const mongoose = require('mongoose');
 
 // Connect to MongoDB using Mongoose
-// Falls back to local default if no URI is provided
+// In production, do NOT fall back to localhost; require an explicit URI.
 async function connectDB(uri) {
-	const mongoUri = uri || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hackmate';
+	const mongoUri = uri
+		|| process.env.MONGO_URI
+		|| process.env.MONGODB_URI
+		|| process.env.MONGO_URL
+		|| '';
+	if (!mongoUri) {
+		console.warn('[db] No MongoDB URI configured (MONGO_URI/MONGODB_URI/MONGO_URL). Skipping DB connection.');
+		return null;
+	}
 	try {
 		await mongoose.connect(mongoUri);
 		console.log('MongoDB connected');

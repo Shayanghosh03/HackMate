@@ -129,7 +129,8 @@ app.get('/api/helth', healthHandler);
 
 // DB connect and server start
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hackmate';
+// Prefer passing no default here; db.js will decide based on env and avoid localhost fallback in prod
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.MONGO_URL || '';
 
 // Socket.IO realtime direct messages (1:1)
 io.on('connection', (socket) => {
@@ -181,7 +182,7 @@ io.on('connection', (socket) => {
 });
 
 // Start the HTTP server first so health checks work even if DB is down
-httpServer.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+httpServer.listen(PORT, () => console.log(`API listening on port ${PORT}`));
 
 // Connect to MongoDB (non-fatal if it fails; health route will reflect status)
 connectDB(MONGO_URI);
