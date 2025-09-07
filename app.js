@@ -138,7 +138,7 @@ const sampleTeams = [
 ];
 
 // ---- API integration ----
-const API_BASE = (window.API_BASE || 'http://localhost:4000');
+const API_BASE = (window.API_BASE || 'https://hackmate-rgv7.onrender.com');
 // Socket.IO client (lazy)
 let socket = null;
 let windowFocused = true;

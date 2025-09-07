@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css" />
   <script>
-    window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+    window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'https://hackmate-rgv7.onrender.com';
     // Optional Socket.IO base override (e.g., separate chat server)
     (function(){
       try {
@@ -128,7 +128,7 @@
   </footer>
 
   <script>
-  const API_BASE = window.API_BASE || 'http://localhost:4000';
+  const API_BASE = window.API_BASE || 'https://hackmate-rgv7.onrender.com';
     function getToken(){ try { return localStorage.getItem('hm_token') || ''; } catch { return ''; } }
     function getUserCache(){ try { return JSON.parse(localStorage.getItem('hm_user')||'null'); } catch { return null; } }
     function setUserCache(u){ try { localStorage.setItem('hm_user', JSON.stringify(u)); } catch {} }
@@ -227,7 +227,7 @@
         }).catch((e)=>{ const el=document.getElementById('apiStatus'); if (el){ el.textContent=`API unreachable`; el.className='mb-3 text-xs text-rose-300'; } });
       } catch {}
   // If API status didn't change, hint after 4s
-  setTimeout(()=>{ const s=document.getElementById('apiStatus'); if (s && /Checking API/.test(s.textContent||'')) { s.textContent = 'API check timed out. Open this page via http://localhost:4000/profile.html and ensure the server is running.'; s.className = 'mb-3 text-xs text-amber-300'; } }, 4000);
+  setTimeout(()=>{ const s=document.getElementById('apiStatus'); if (s && /Checking API/.test(s.textContent||'')) { s.textContent = 'API check timed out. Ensure the server is reachable.'; s.className = 'mb-3 text-xs text-amber-300'; } }, 4000);
       document.getElementById('logoutBtn').addEventListener('click', ()=>{ localStorage.removeItem('hm_token'); localStorage.removeItem('hm_user'); window.location.href='index.html#home'; });
       document.getElementById('editBtn').addEventListener('click', ()=>{ const p=document.getElementById('editPanel'); p.classList.remove('hidden'); p.classList.add('in-view'); });
       document.getElementById('cancelEdit').addEventListener('click', ()=>{ document.getElementById('editPanel').classList.add('hidden'); });

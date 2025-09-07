@@ -527,7 +527,7 @@
     (function(){
       try {
         const qs = new URLSearchParams(location.search);
-        const defaultApi = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+  const defaultApi = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'https://hackmate-rgv7.onrender.com';
         const qsApi = qs.get('apiBase');
         const qsChat = qs.get('chatBase');
         const lsApi = localStorage.getItem('hm_api_base');
@@ -537,8 +537,8 @@
         if (qsApi) localStorage.setItem('hm_api_base', window.API_BASE);
         if (qsChat) localStorage.setItem('hm_chat_base', window.CHAT_BASE);
       } catch (e) {
-        window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
-        window.CHAT_BASE = window.API_BASE;
+  window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'https://hackmate-rgv7.onrender.com';
+  window.CHAT_BASE = window.API_BASE; // same origin by default
       }
     })();
   </script>
@@ -642,7 +642,7 @@
 
     // --- About section uploads ---
     (function(){
-      const API_BASE = window.API_BASE || 'http://localhost:4000';
+  const API_BASE = window.API_BASE || 'https://hackmate-rgv7.onrender.com';
       function get(key){ try { return localStorage.getItem(key) || ''; } catch { return ''; } }
       function set(key, val){ try { localStorage.setItem(key, val); } catch {} }
       function clear(key){ try { localStorage.removeItem(key); } catch {} }
