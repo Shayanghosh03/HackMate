@@ -11,6 +11,8 @@ const fs = require('fs');
 const http = require('http');
 const { Server } = require('socket.io');
 
+const port = process.env.PORT || 4000;
+
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const teamRoutes = require('./routes/teams');
