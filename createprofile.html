@@ -9,7 +9,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css" />
-  <script>window.API_BASE = 'http://localhost:4000';</script>
+  <script>
+    window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen">
   <div class="pointer-events-none fixed inset-0 overflow-hidden">
@@ -58,7 +60,10 @@
         <form id="createForm" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" onsubmit="return false;">
           <input id="fullName" type="text" required placeholder="Full name" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
           <input id="email" type="email" required placeholder="Email" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
-          <input id="password" type="password" required placeholder="Password" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
+          <div class="relative">
+            <input id="password" type="password" required placeholder="Password" class="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 pr-20 text-sm" />
+            <button type="button" id="togglePassword" aria-pressed="false" class="absolute inset-y-0 right-0 my-1 mr-1 rounded-md border border-white/10 bg-white/5 px-3 text-xs text-slate-200 hover:bg-white/10">Show</button>
+          </div>
           <input id="org" type="text" placeholder="College / Organization" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
           <input id="location" type="text" placeholder="Location" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
           <input id="linkedin" type="url" placeholder="LinkedIn profile URL" class="rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm" />
@@ -127,6 +132,19 @@
   document.addEventListener('DOMContentLoaded', () => {
       const y = document.getElementById('year');
       if (y) y.textContent = new Date().getFullYear();
+
+      // Show/Hide password
+      (function(){
+        const pw = document.getElementById('password');
+        const btn = document.getElementById('togglePassword');
+        if (!pw || !btn) return;
+        btn.addEventListener('click', () => {
+          const isHidden = pw.type === 'password';
+          pw.type = isHidden ? 'text' : 'password';
+          btn.textContent = isHidden ? 'Hide' : 'Show';
+          btn.setAttribute('aria-pressed', String(isHidden));
+        });
+      })();
 
       const previewBtn = document.getElementById('previewBtn');
       const form = document.getElementById('createForm');

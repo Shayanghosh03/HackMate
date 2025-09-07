@@ -36,3 +36,36 @@ Built with the **MERN stack (MongoDB, Express, React, Node.js)**.
 ```bash
 git clone https://github.com/your-username/hackmate.git
 cd hackmate
+
+### 2. Start the Backend API
+```bash
+npm install
+npm start
+```
+
+The API will print the port (e.g., http://localhost:5004). This also serves the legacy static site (index.html).
+
+### 3. React Web App (Vite)
+```bash
+cd web
+npm install
+npm run dev
+```
+Open the printed URL (e.g., http://localhost:5173). If your backend runs on a different port, add query params to point the app to your API/socket server:
+
+- http://localhost:5173/?apiBase=http://localhost:4000&chatBase=http://localhost:5003
+
+These values are saved to localStorage for future sessions.
+
+### 4. React Native App (Expo)
+```bash
+cd mobile
+npm install
+npm start
+```
+For device testing, set your LAN IP in environment variables (Windows PowerShell):
+```powershell
+setx EXPO_PUBLIC_API_BASE http://192.168.1.10:4000
+setx EXPO_PUBLIC_CHAT_BASE http://192.168.1.10:5003
+```
+Restart terminal, then run `npm start` again.

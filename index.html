@@ -60,7 +60,7 @@
         <a href="#about" class="hover:text-white">About</a>
   <a href="#team-finder" class="hover:text-white">Team Finder</a>
       </nav>
-      <div class="flex items-center gap-3">
+  <div class="flex items-center gap-3">
         <span id="apiStatusHeader" class="hidden rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300"></span>
         <button id="perfToggle" title="Toggle performance mode" class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 hover:bg-white/10">Perf</button>
         <a href="login.html" class="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">Log in</a>
@@ -293,7 +293,7 @@
                 <div class="flex items-start gap-3">
   <img src="https://ui-avatars.com/api/?name=Shwetank&background=6366f1&color=0b1020&size=80&bold=true" alt="Shwetank" class="h-12 w-12 rounded-xl object-cover border border-white/10" />
                   <div>
-                    <h5 class="font-semibold">Shwetank</h5>
+                    <h5 class="font-semibold">Spandan</h5>
                     <p class="text-xs text-slate-400">Frontend Developer</p>
                   </div>
                 </div>
@@ -523,13 +523,28 @@
   </footer>
 
   <script>
-    // Prefer current origin when served by the API; fallback to localhost:4000
-    window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+    // Configure API and Socket endpoints, supporting cross-port setups via query/localStorage
+    (function(){
+      try {
+        const qs = new URLSearchParams(location.search);
+        const defaultApi = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+        const qsApi = qs.get('apiBase');
+        const qsChat = qs.get('chatBase');
+        const lsApi = localStorage.getItem('hm_api_base');
+        const lsChat = localStorage.getItem('hm_chat_base');
+        window.API_BASE = qsApi || lsApi || defaultApi;
+        window.CHAT_BASE = qsChat || lsChat || window.API_BASE;
+        if (qsApi) localStorage.setItem('hm_api_base', window.API_BASE);
+        if (qsChat) localStorage.setItem('hm_chat_base', window.CHAT_BASE);
+      } catch (e) {
+        window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+        window.CHAT_BASE = window.API_BASE;
+      }
+    })();
   </script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="app.js"></script>
   <script>
-    
     // Show API health in header
     (function(){
       const el = document.getElementById('apiStatusHeader');

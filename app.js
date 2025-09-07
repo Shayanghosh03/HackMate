@@ -141,9 +141,150 @@ const sampleTeams = [
 const API_BASE = (window.API_BASE || 'http://localhost:4000');
 // Socket.IO client (lazy)
 let socket = null;
+let windowFocused = true;
+window.addEventListener('focus', () => { windowFocused = true; });
+window.addEventListener('blur', () => { windowFocused = false; });
+const unreadByRoom = new Map();
+// Track recent sent messages per room to avoid double-adding when server echoes
+const recentSent = new Map(); // roomId -> [{ text, ts }]
+function rememberSent(roomId, text, ts) {
+  try {
+    const list = recentSent.get(roomId) || [];
+    list.push({ text, ts });
+    const now = Date.now();
+    const trimmed = list.filter(it => now - it.ts < 12000).slice(-10);
+    recentSent.set(roomId, trimmed);
+  } catch {}
+}
+function wasRecentlySent(roomId, text, ts) {
+  try {
+    const list = recentSent.get(roomId) || [];
+    const idx = list.findIndex(it => it.text === text && Math.abs((ts || Date.now()) - it.ts) < 12000);
+    if (idx >= 0) { list.splice(idx, 1); recentSent.set(roomId, list); return true; }
+    return false;
+  } catch { return false; }
+}
+
+function isChatOpenForRoom(roomId) {
+  try {
+    const modal = document.getElementById('chatModal');
+    if (!modal || modal.classList.contains('hidden')) return false;
+    const ctx = state.chatContext;
+    if (!ctx) return false;
+    const cur = `${ctx.type}:${ctx.targetId}`;
+    return cur === roomId;
+  } catch { return false; }
+}
+
+function requestNotifyPermission() {
+  try {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().catch(()=>{});
+    }
+  } catch {}
+}
+
+function badgeForRoom(roomId) {
+  try {
+    const parts = String(roomId || '').split(':');
+    if (parts.length < 2) return null;
+    const [type, id] = parts;
+    return document.querySelector(`[data-action="chat"][data-type="${type}"][data-id="${id}"]`);
+  } catch { return null; }
+}
+
+function setUnread(roomId, count) {
+  try {
+    if (!roomId) return;
+    if (count <= 0) unreadByRoom.delete(roomId); else unreadByRoom.set(roomId, count);
+    const btn = badgeForRoom(roomId);
+    if (!btn) return;
+    let b = btn.querySelector('.badge-unread');
+    if (count > 0) {
+      if (!b) {
+        b = document.createElement('span');
+        b.className = 'badge-unread absolute -top-2 -right-2 rounded-full bg-rose-500 text-white text-[10px] leading-none px-1.5 py-0.5 border border-white/20 shadow';
+        btn.appendChild(b);
+      }
+      b.textContent = String(count);
+    } else if (b) {
+      b.remove();
+    }
+  } catch {}
+}
+
+function incUnread(roomId) {
+  const c = unreadByRoom.get(roomId) || 0;
+  setUnread(roomId, c + 1);
+}
+
+function getPref(key, defVal) { try { const v = localStorage.getItem(key); if (v == null) return defVal; return v === '1'; } catch { return defVal; } }
+function setPref(key, val) { try { localStorage.setItem(key, val ? '1' : '0'); } catch {} }
+
+function showBrowserNotification({ title, body, tag }) {
+  try {
+  if (!getPref('hm_notify_enabled', true)) return false;
+    if (!('Notification' in window)) return false;
+    if (Notification.permission !== 'granted') return false;
+    const n = new Notification(title || 'New message', { body: body || '', tag: tag || undefined });
+    n.onclick = () => { try { window.focus(); } catch {} };
+    return true;
+  } catch { return false; }
+}
+
+function ensureToastContainer() {
+  let c = document.getElementById('toastContainer');
+  if (!c) {
+    c = document.createElement('div');
+    c.id = 'toastContainer';
+    c.className = 'fixed right-4 bottom-4 z-[60] space-y-2';
+    document.body.appendChild(c);
+  }
+  return c;
+}
+
+function showToast(msg) {
+  try {
+    const c = ensureToastContainer();
+    const t = document.createElement('div');
+    t.className = 'rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white shadow';
+    t.style.transition = 'opacity .25s ease';
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(()=> t.remove(), 260); }, 3500);
+  } catch {}
+}
+
+function beep() {
+  try {
+  if (!getPref('hm_sound_enabled', true)) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+    const ctx = new Ctx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 880; // A5
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+    o.start(); o.stop(ctx.currentTime + 0.2);
+  } catch {}
+}
+
 function getSocket() {
   if (socket) return socket;
-  try { socket = io(API_BASE, { transports: ['websocket', 'polling'] }); } catch {}
+  try {
+    if (typeof io === 'undefined') {
+      console.error('[chat] Socket.IO client not loaded');
+      return null;
+    }
+  const CHAT_BASE = (typeof window !== 'undefined' && window.CHAT_BASE) ? window.CHAT_BASE : API_BASE;
+  try { console.log('[chat] connecting to', CHAT_BASE); } catch {}
+    socket = io(CHAT_BASE, { transports: ['websocket', 'polling'] });
+    socket.on('connect', () => { try { console.log('[chat] connected', socket.id); } catch {} });
+    socket.on('connect_error', (e) => { try { console.error('[chat] connect_error', e && e.message); } catch {} });
+    socket.on('disconnect', (r) => { try { console.warn('[chat] disconnected', r); } catch {} });
+  } catch (e) { try { console.error('[chat] socket create error', e); } catch {} }
   return socket;
 }
 function getToken() { try { return localStorage.getItem('hm_token') || ''; } catch { return ''; } }
@@ -168,7 +309,7 @@ async function loadRemoteData() {
     ]);
     if (Array.isArray(users)) {
       remoteProfiles = users.map((u) => ({
-        id: u.id || u._id || u.email,
+        id: String(u._id || u.id || u.email),
         name: u.name,
         email: u.email,
         organization: u.organization || '',
@@ -220,7 +361,7 @@ function init() {
   bindTeamFinder();
   // Defer non-critical work to next frames to keep first paint smooth
   requestIdleCallbackSafe(() => renderSkills());
-  setupChat();
+  setupDM();
   // Load data without blocking render
   loadRemoteData().finally(() => {
     requestAnimationFrame(() => {
@@ -309,7 +450,8 @@ function bindTeamFinder() {
       const card = document.createElement('article');
       card.className = 'card reveal in-view';
       card.style.setProperty('--reveal-delay', `${Math.min(i * 60, 360)}ms`);
-      card.innerHTML = `
+  const rid = `tf-${String(e.name||'anon').toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
+  card.innerHTML = `
         <div class="card-body">
           <div class="flex items-start justify-between gap-3">
             <div>
@@ -321,14 +463,10 @@ function bindTeamFinder() {
           <p class="mt-3 text-sm text-slate-300"><strong>Skills:</strong> ${e.skills || '—'}</p>
           ${e.interests ? `<p class="mt-2 text-sm text-slate-300"><strong>Interests:</strong> ${e.interests}</p>` : ''}
           <div class="mt-4 flex items-center justify-end gap-2">
-            <button data-idx="${i}" class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" data-action="chat">Chat</button>
             <button data-idx="${i}" class="rounded-md bg-rose-500/20 px-3 py-1.5 text-sm text-rose-200 hover:bg-rose-500/30" data-action="delete">Remove</button>
           </div>
         </div>`;
-      card.querySelector('[data-action="chat"]').addEventListener('click', () => {
-        const rid = `tf-${String(e.name||'anon').toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
-        openChat({ type: 'candidate', targetId: rid, name: e.name });
-      });
+      // No DM button for local-only candidate entries
       card.querySelector('[data-action="delete"]').addEventListener('click', () => {
         const cur = getEntries();
         cur.splice(i, 1);
@@ -502,6 +640,8 @@ function applyFilters() {
 
   // Stagger animation for newly rendered cards if grid is visible
   try { staggerGridReveal(resultsGrid); } catch {}
+  // Reapply unread badges after rendering (buttons may have been recreated)
+  // DM-only: no passive joins or unread badge handling here
 }
 
 function renderSuggestions() {
@@ -540,11 +680,11 @@ function renderProfileCard(p) {
           ${p.github ? `<a href="${p.github}" target="_blank" rel="noopener" class="text-xs text-cyan-300 hover:underline">GitHub</a>` : ''}
           ${p.linkedin ? `<a href="${p.linkedin}" target="_blank" rel="noopener" class="text-xs text-cyan-300 hover:underline">LinkedIn</a>` : ''}
         </div>
-        <button class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" data-action="chat" data-type="profile" data-id="${p.id}" data-name="${p.name}">Chat</button>
+        <button class="relative rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" data-action="chat" data-type="profile" data-id="${p.id}" data-name="${p.name}">Chat</button>
       </div>
     </div>
   `;
-  card.querySelector('[data-action="chat"]').addEventListener("click", () => openChat({ type: "profile", targetId: p.id, name: p.name }));
+  card.querySelector('[data-action="chat"]').addEventListener("click", () => openDM(p.id, p.name));
   return card;
 }
 
@@ -564,55 +704,85 @@ function renderTeamCard(t) {
       <div class="mt-3 flex flex-wrap gap-2">
         ${t.lookingFor.map((s) => `<span class="badge">Needs: ${s}</span>`).join("")}
       </div>
-      <div class="mt-4 flex items-center justify-end">
-        <button class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" data-action="chat" data-type="team" data-id="${t.id}" data-name="${t.name}">Chat</button>
-      </div>
+  <!-- Team chat removed in DM-only mode -->
     </div>
   `;
-  card.querySelector('[data-action="chat"]').addEventListener("click", () => openChat({ type: "team", targetId: t.id, name: t.name }));
   return card;
 }
 
-function setupChat() {
+let currentDM = null; // { peerId, peerName, roomId }
+function setupDM() {
   $("#closeChat").addEventListener("click", closeChat);
-  $("#sendBtn").addEventListener("click", sendMessage);
-  $("#messageInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") sendMessage();
-  });
-  $("#approveBtn").addEventListener("click", () => addSystemMessage("You approved this teammate."));
-  $("#rejectBtn").addEventListener("click", () => addSystemMessage("You rejected this candidate."));
-  $("#acceptBtn").addEventListener("click", () => addSystemMessage("You accepted the invite."));
-  $("#declineBtn").addEventListener("click", () => addSystemMessage("You rejected the invite."));
+  $("#sendBtn").addEventListener("click", sendDM);
+  $("#messageInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendDM(); });
 }
 
-function openChat(ctx) {
-  state.chatContext = ctx;
-  $("#chatWith").textContent = ctx.name;
-  $("#chatSub").textContent = ctx.type === "profile" ? "Recruiter actions enabled" : "Applicant actions enabled";
-  $("#recruiterActions").classList.toggle("hidden", ctx.type !== "profile");
-  $("#applicantActions").classList.toggle("hidden", ctx.type !== "team");
+function openDM(peerId, peerName) {
+  const me = JSON.parse(localStorage.getItem('hm_user')||'null');
+  const meId = me && (me._id || me.id);
+  if (!meId) { showToast('Please log in to start a chat.'); return; }
+  currentDM = null;
+  $("#chatWith").textContent = peerName;
+  $("#chatSub").textContent = 'Direct message';
   $("#messages").innerHTML = "";
-  addSystemMessage("Conversation started. Attachments and links are supported.");
   $("#chatModal").classList.remove("hidden");
   $("#chatModal").classList.add("flex");
-  // Force reflow to ensure transition plays
   void $("#chatModal").offsetHeight;
   $("#chatModal").classList.add("show");
   $("#messageInput").focus();
 
-  // Join realtime room for this conversation
+  const [x, y] = [String(meId), String(peerId)].sort();
+  const roomId = `dm:${x}|${y}`;
+  currentDM = { peerId: String(peerId), peerName, roomId };
+
   try {
     const sock = getSocket();
-    if (sock) {
-      const roomId = `${ctx.type}:${ctx.targetId}`;
-      const me = JSON.parse(localStorage.getItem('hm_user')||'null');
-      sock.emit('join', { roomId, userName: (me && me.name) || 'Guest' });
-      // Ensure clean listeners per session
-      sock.off('chat:message');
-      sock.off('system');
-      sock.on('system', (m) => { if (m && m.text) addSystemMessage(m.text); });
-      sock.on('chat:message', (m) => { if (m && m.text) addChatMessage({ text: m.text, fromSelf: false, system: false }); });
-    }
+    if (!sock) { showToast('Realtime connection is offline.'); return; }
+    requestNotifyPermission();
+  sock.emit('dm:join', { me: meId, peerId, userName: me.name || 'Guest' }, (info) => {
+      try {
+        const sub = document.getElementById('chatSub');
+    if (info && sub) sub.textContent = `DM • members: ${info.members || 1}`;
+    try { console.log('[dm] joined room', info?.roomId, 'me=', meId, 'peer=', peerId); } catch {}
+      } catch {}
+    });
+    // Load last 50 messages from server history
+    fetch(`${API_BASE}/api/dm/history?me=${encodeURIComponent(meId)}&peerId=${encodeURIComponent(peerId)}&limit=50`)
+      .then(r => r.json())
+      .then(arr => {
+        try {
+          if (Array.isArray(arr)) {
+            const selfName = me.name || 'Me';
+            const box = document.getElementById('messages');
+            box.innerHTML = '';
+            arr.forEach(m => {
+              const ts = m.ts ? new Date(m.ts).getTime() : Date.now();
+              const fromSelf = (m.userName === selfName);
+              addChatMessage({ text: m.text, fromSelf, system: false, userName: m.userName || 'Guest', ts });
+            });
+          }
+        } catch {}
+      })
+      .catch((e)=>{ try { console.error('[dm] history error', e); } catch {} });
+    // Ensure clean listeners per session
+    sock.off('dm:message');
+    sock.on('dm:message', (m) => {
+      if (!currentDM) return;
+      if (!m || m.roomId !== currentDM.roomId || !m.text) return;
+      // Since server no longer echoes to sender, only render incoming
+      const fromSelf = false;
+      if (!wasRecentlySent(currentDM.roomId, m.text, m.ts || Date.now())) {
+        addChatMessage({ text: m.text, fromSelf, system: false, userName: m.userName || 'Guest', ts: m.ts || Date.now() });
+      }
+      if (!fromSelf) {
+        const shouldNotify = !windowFocused || !document.hasFocus();
+        if (shouldNotify) {
+          const shown = showBrowserNotification({ title: `${m.userName || 'New message'}`, body: String(m.text||'').slice(0,80), tag: currentDM.roomId });
+          if (!shown) showToast(`${m.userName || 'New message'}: ${String(m.text||'').slice(0,80)}`);
+        }
+        beep();
+      }
+    });
   } catch {}
 }
 
@@ -623,22 +793,32 @@ function closeChat() {
   setTimeout(() => { modal.classList.add("hidden"); modal.classList.remove("flex"); }, 300);
 }
 
-function sendMessage() {
+function sendDM() {
   const input = $("#messageInput");
   const text = input.value.trim();
   const fileInput = $("#attachmentInput");
   if (!text && !fileInput.files.length) return;
 
   if (text) {
-    addChatMessage({ text, fromSelf: true });
-    // Broadcast to room peers
+    const now = Date.now();
     try {
       const sock = getSocket();
-      const ctx = state.chatContext;
-      if (sock && ctx) {
-        const roomId = `${ctx.type}:${ctx.targetId}`;
-        const me = JSON.parse(localStorage.getItem('hm_user')||'null');
-        sock.emit('chat:message', { roomId, text, userName: (me && me.name) || 'Me', ts: Date.now() });
+      const me = JSON.parse(localStorage.getItem('hm_user')||'null');
+      const meId = me && (me._id || me.id);
+      if (sock && currentDM && meId) {
+  const roomId = currentDM.roomId;
+        const selfName = me.name || 'Me';
+        addChatMessage({ text, fromSelf: true, system: false, userName: selfName, ts: now });
+        rememberSent(roomId, text, now);
+        try { console.log('[dm] send', { roomId, text, to: currentDM.peerId }); } catch {}
+        sock.emit('dm:message', { me: meId, peerId: currentDM.peerId, text, userName: selfName, ts: now }, (ack) => {
+          try {
+            if (!ack || ack.ok !== true) {
+              showToast('Message not saved');
+              console.error('[dm] send ack error', ack);
+            }
+          } catch {}
+        });
       }
     } catch {}
   }
@@ -650,11 +830,9 @@ function sendMessage() {
   input.value = "";
 }
 
-function addSystemMessage(text) {
-  addChatMessage({ text, fromSelf: false, system: true });
-}
+// system messages not used in DM-only mode
 
-function addChatMessage({ text = "", attachment = null, fromSelf = false, system = false }) {
+function addChatMessage({ text = "", attachment = null, fromSelf = false, system = false, userName = '', ts = null }) {
   const container = $("#messages");
   const row = document.createElement("div");
   row.className = `flex ${fromSelf ? "justify-end" : "justify-start"}`;
@@ -671,6 +849,16 @@ function addChatMessage({ text = "", attachment = null, fromSelf = false, system
     att.className = "mt-1 text-xs text-slate-300";
     att.innerHTML = `📎 ${attachment}`;
     bubble.appendChild(att);
+  }
+  if (!system) {
+    const meta = document.createElement('div');
+    meta.className = `mt-1 text-[10px] ${fromSelf ? 'text-cyan-200/70' : 'text-fuchsia-200/70'}`;
+    const when = ts ? new Date(ts) : new Date();
+    const hh = String(when.getHours()).padStart(2,'0');
+    const mm = String(when.getMinutes()).padStart(2,'0');
+    const who = fromSelf ? (userName || 'You') : (userName || 'Guest');
+    meta.textContent = `${who} • ${hh}:${mm}`;
+    bubble.appendChild(meta);
   }
   row.appendChild(bubble);
   container.appendChild(row);
@@ -774,3 +962,5 @@ function startTypewriter() {
   i = phrases[0].length;
   setTimeout(() => { dir = -1; step(); }, holdDelay);
 }
+
+// (notification toggles removed from UI; notifications and sound are enabled by default)

@@ -11,6 +11,16 @@
   <link rel="stylesheet" href="styles.css" />
   <script>
     window.API_BASE = (location.origin && /^https?:\/\//.test(location.origin)) ? location.origin : 'http://localhost:4000';
+    // Optional Socket.IO base override (e.g., separate chat server)
+    (function(){
+      try {
+        const qs = new URLSearchParams(location.search);
+        const qsVal = qs.get('chatBase');
+        const lsVal = localStorage.getItem('hm_chat_base');
+        window.CHAT_BASE = qsVal || lsVal || window.API_BASE;
+        if (qsVal) localStorage.setItem('hm_chat_base', qsVal);
+      } catch { window.CHAT_BASE = window.API_BASE; }
+    })();
   </script>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen">
@@ -108,6 +118,9 @@
         </form>
       </div>
     </section>
+
+    <!-- Team Chats -->
+    
   </main>
 
   <footer class="relative z-10 mt-16 border-t border-white/10">
@@ -115,10 +128,11 @@
   </footer>
 
   <script>
-    const API_BASE = window.API_BASE || 'http://localhost:4000';
+  const API_BASE = window.API_BASE || 'http://localhost:4000';
     function getToken(){ try { return localStorage.getItem('hm_token') || ''; } catch { return ''; } }
     function getUserCache(){ try { return JSON.parse(localStorage.getItem('hm_user')||'null'); } catch { return null; } }
     function setUserCache(u){ try { localStorage.setItem('hm_user', JSON.stringify(u)); } catch {} }
+    let meUser = null;
 
     async function fetchWithTimeout(url, opts={}, timeoutMs=6000){
       const ctrl = new AbortController();
@@ -173,6 +187,8 @@
         const me = await api('/api/users/me');
         render(me);
         setUserCache(me);
+        meUser = me;
+  // Teams chat removed; nothing to load here beyond profile
         // Prefill edit form
         document.getElementById('eName').value = me.name || '';
         document.getElementById('eEmail').value = me.email || '';
@@ -182,13 +198,14 @@
         document.getElementById('eGitHub').value = me.github || '';
         document.getElementById('eSkills').value = (me.skills||[]).join(', ');
         document.getElementById('eBio').value = me.bio || '';
-      } catch(e) {
+    } catch(e) {
         // API error: if we have cached user, keep showing it with a warning; else prompt to log in
         const cachedUser = getUserCache();
         const status = document.getElementById('profileStatus');
         if (cachedUser && cachedUser.email) {
           try { render(cachedUser); } catch {}
           if (status) { status.textContent = 'Using cached profile • ' + (e && e.message ? e.message : 'Could not refresh'); status.className = 'mb-3 text-xs text-amber-300'; }
+  meUser = cachedUser;
         } else {
           // Likely not authenticated or token invalid → redirect to login, then back
           try { if (status) { status.textContent = 'Redirecting to log in…'; status.className = 'mb-3 text-xs text-amber-300'; } } catch {}
@@ -247,7 +264,7 @@
       load();
     });
 
-    // Surface unexpected JS errors visibly on the page
+  // Surface unexpected JS errors visibly on the page
     window.addEventListener('error', function(ev){
       try { const s=document.getElementById('profileStatus'); if (s) { s.textContent = 'Script error: ' + (ev && ev.message ? ev.message : 'Unknown'); s.className = 'mb-3 text-xs text-rose-300'; } } catch {}
     });
@@ -255,5 +272,6 @@
       try { const s=document.getElementById('profileStatus'); if (s) { s.textContent = 'Unhandled error: ' + (ev && ev.reason && ev.reason.message ? ev.reason.message : 'Unknown'); s.className = 'mb-3 text-xs text-rose-300'; } } catch {}
     });
   </script>
+  
 </body>
 </html>

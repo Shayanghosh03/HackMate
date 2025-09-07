@@ -3,6 +3,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const { connectDB } = require('./config/db');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
@@ -14,6 +15,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const teamRoutes = require('./routes/teams');
 const ideaRoutes = require('./routes/ideas');
+const Message = require('./models/Message');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -33,6 +35,37 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/ideas', ideaRoutes);
+
+// Direct message history API (1:1 chat)
+app.get('/api/dm/history', async (req, res) => {
+  try {
+    const a = String(req.query.me || '').trim();
+    const b = String(req.query.peerId || '').trim();
+    const limit = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200);
+    if (!a || !b) return res.status(400).json({ message: 'me and peerId required' });
+    const [x, y] = [a, b].sort();
+    const roomId = `dm:${x}|${y}`;
+    const msgs = await Message.find({ roomId }).sort({ ts: -1 }).limit(limit).lean();
+    res.json(msgs.reverse());
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to load history' });
+  }
+});
+
+// Diagnostic: compute DM room info (roomId and current member count)
+app.get('/api/dm/roominfo', (req, res) => {
+  try {
+    const a = String(req.query.me || '').trim();
+    const b = String(req.query.peerId || '').trim();
+    if (!a || !b) return res.status(400).json({ message: 'me and peerId required' });
+    const [x, y] = [a, b].sort();
+    const roomId = `dm:${x}|${y}`;
+    const members = io.sockets.adapter.rooms.get(roomId)?.size || 0;
+    res.json({ roomId, members });
+  } catch (e) {
+    res.status(500).json({ message: 'roominfo error' });
+  }
+});
 
 // Serve static frontend (so opening index.html/profile.html uses the same origin as API)
 const staticRoot = path.resolve(__dirname, '..');
@@ -96,30 +129,52 @@ app.get('/api/helth', healthHandler);
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hackmate';
 
-// Socket.IO realtime chat (rooms)
+// Socket.IO realtime direct messages (1:1)
 io.on('connection', (socket) => {
-  // Join a room for a given candidate/team/profile chat
-  socket.on('join', ({ roomId, userName }) => {
-    if (!roomId) return;
-    socket.join(roomId);
-    socket.data.roomId = roomId;
-    socket.data.userName = userName || 'Guest';
-    socket.to(roomId).emit('system', { text: `${socket.data.userName} joined`, roomId, ts: Date.now() });
-  });
+  try { console.log('[dm] client connected', socket.id); } catch {}
 
-  // Relay chat messages to room peers
-  socket.on('chat:message', (msg) => {
+  // Join a 1:1 room based on two user IDs (sorted for stable key)
+  socket.on('dm:join', ({ me, peerId, userName }, ack) => {
+    if (!me || !peerId) return;
+    const [x, y] = [String(me), String(peerId)].sort();
+    const roomId = `dm:${x}|${y}`;
+    socket.join(roomId);
+    socket.data.me = String(me);
+    socket.data.userName = userName || 'Guest';
+    socket.data.currentRoom = roomId;
     try {
-      const { roomId, text, userName, ts } = msg || {};
-      const rid = roomId || socket.data.roomId;
-      if (!rid || !text) return;
-      socket.to(rid).emit('chat:message', { roomId: rid, text, userName: userName || socket.data.userName || 'Guest', ts: ts || Date.now() });
+      const count = io.sockets.adapter.rooms.get(roomId)?.size || 1;
+      if (typeof ack === 'function') ack({ ok: true, roomId, members: count });
+      console.log('[dm] join', { sid: socket.id, roomId, me: socket.data.me, as: socket.data.userName, members: count });
     } catch {}
   });
 
+  // Send a DM message to the peer (broadcast within the room including sender)
+  socket.on('dm:message', (msg, ack) => {
+    try {
+      const { peerId, text, userName, ts, me } = msg || {};
+      const a = String(me || socket.data.me || '');
+      const b = String(peerId || '');
+      if (!a || !b || !text) return;
+      const [x, y] = [a, b].sort();
+      const roomId = `dm:${x}|${y}`;
+      const payload = { roomId, text, userName: userName || socket.data.userName || 'Guest', ts: ts || Date.now(), senderSid: socket.id };
+      console.log('[dm] msg', { sid: socket.id, roomId, from: payload.userName, text: String(text).slice(0,80) });
+  // Broadcast to the room except the sender to avoid client-side echo
+  socket.to(roomId).emit('dm:message', payload);
+      // Persist
+      const doc = new Message({ roomId, text: payload.text, userName: payload.userName, ts: new Date(payload.ts) });
+      doc.save()
+        .then(() => { if (typeof ack === 'function') ack({ ok: true }); })
+        .catch((e) => { if (typeof ack === 'function') ack({ ok: false, error: e && e.message }); });
+    } catch (e) {
+      try { console.error('[dm] msg error', e && e.message); } catch {}
+      if (typeof ack === 'function') ack({ ok: false, error: 'server error' });
+    }
+  });
+
   socket.on('disconnect', () => {
-    const { roomId, userName } = socket.data || {};
-    if (roomId) socket.to(roomId).emit('system', { text: `${userName || 'Someone'} left`, roomId, ts: Date.now() });
+    try { console.log('[dm] client disconnected', socket.id); } catch {}
   });
 });
 
@@ -127,11 +182,4 @@ io.on('connection', (socket) => {
 httpServer.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
 
 // Connect to MongoDB (non-fatal if it fails; health route will reflect status)
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected');
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err.message);
-  });
+connectDB(MONGO_URI);

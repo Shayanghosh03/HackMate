@@ -37,7 +37,10 @@
           </div>
           <div>
             <label class="block text-sm mb-1 text-slate-300" for="password">Password</label>
-            <input id="password" type="password" required placeholder="••••••••" class="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/60" />
+            <div class="relative">
+              <input id="password" type="password" required placeholder="••••••••" class="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 pr-20 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/60" />
+              <button type="button" id="togglePassword" aria-pressed="false" class="absolute inset-y-0 right-0 my-1 mr-1 rounded-md border border-white/10 bg-white/5 px-3 text-xs text-slate-200 hover:bg-white/10">Show</button>
+            </div>
           </div>
           <button id="loginBtn" type="submit" class="w-full rounded-lg bg-gradient-to-br from-fuchsia-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-95">Log in</button>
           <p id="loginError" class="hidden text-sm text-rose-300"></p>
@@ -53,6 +56,18 @@
       const btn = document.getElementById('loginBtn');
       const err = document.getElementById('loginError');
       const statusEl = document.getElementById('apiStatus');
+      // Show/Hide password
+      (function(){
+        const pw = document.getElementById('password');
+        const tog = document.getElementById('togglePassword');
+        if (!pw || !tog) return;
+        tog.addEventListener('click', () => {
+          const hidden = pw.type === 'password';
+          pw.type = hidden ? 'text' : 'password';
+          tog.textContent = hidden ? 'Hide' : 'Show';
+          tog.setAttribute('aria-pressed', String(hidden));
+        });
+      })();
 
       // Ping API health
       fetch(`${API_BASE}/api/health`).then(r=>r.json()).then(d=>{
